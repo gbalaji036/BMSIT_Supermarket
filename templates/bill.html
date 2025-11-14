@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bill - BMS Mart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', Courier, monospace;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .bill-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border: 2px solid #333;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .bill-header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px dashed #333;
+            padding-bottom: 15px;
+        }
+
+        .bill-header h1 {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .bill-header p {
+            font-size: 14px;
+            margin: 3px 0;
+        }
+
+        .bill-info {
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .bill-info p {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bill-info strong {
+            font-weight: bold;
+        }
+
+        .divider {
+            border: none;
+            border-top: 2px dashed #333;
+            margin: 15px 0;
+        }
+
+        .bill-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .bill-table th {
+            background: #f0f0f0;
+            padding: 8px 5px;
+            text-align: left;
+            border-bottom: 2px solid #333;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .bill-table td {
+            padding: 6px 5px;
+            border-bottom: 1px solid #ddd;
+            font-size: 13px;
+        }
+
+        .bill-table tr:last-child td {
+            border-bottom: 2px solid #333;
+        }
+
+        .bill-summary {
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+
+        .summary-total {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #333;
+        }
+
+        .bill-footer {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px dashed #333;
+            font-size: 14px;
+        }
+
+        .bill-footer p {
+            margin: 5px 0;
+        }
+
+        .thank-you {
+            font-weight: bold;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+
+        .print-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .print-button:hover {
+            background: #5568d3;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .bill-container {
+                border: none;
+                box-shadow: none;
+                max-width: 100%;
+            }
+
+            .print-button {
+                display: none;
+            }
+        }
+
+        .barcode {
+            text-align: center;
+            margin: 15px 0;
+            font-size: 12px;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="bill-container">
+        <div class="bill-header">
+            <h1>🛒 BMS MART</h1>
+            <p>Supermarket & General Store</p>
+            <p>Address: Your Store Address Here</p>
+            <p>Contact: +91-XXXXXXXXXX</p>
+            <p>Email: info@bmsmart.com</p>
+            <p>GSTIN: XXXXXXXXXXXX</p>
+        </div>
+
+        <div class="bill-info">
+            <p><strong>Bill No:</strong> <span id="billNo">001</span></p>
+            <p><strong>Date & Time:</strong> <span id="billDate"></span></p>
+            <p><strong>Customer:</strong> <span id="customerName">Walk-in Customer</span></p>
+            <p><strong>Contact:</strong> <span id="customerContact">N/A</span></p>
+            <p><strong>Payment Mode:</strong> <span id="paymentMethod">Cash</span></p>
+        </div>
+
+        <hr class="divider">
+
+        <table class="bill-table">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Item</th>
+                    <th>Qty</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                </tr>
+            </thead>
+            <tbody id="billItems">
+                <!-- Items will be inserted here dynamically -->
+                <tr>
+                    <td>BMS001</td>
+                    <td>Rice 1kg</td>
+                    <td>2</td>
+                    <td>₹60.00</td>
+                    <td>₹120.00</td>
+                </tr>
+                <tr>
+                    <td>BMS003</td>
+                    <td>Coca Cola 500ml</td>
+                    <td>3</td>
+                    <td>₹40.00</td>
+                    <td>₹120.00</td>
+                </tr>
+                <tr>
+                    <td>BMS005</td>
+                    <td>Lays Chips</td>
+                    <td>5</td>
+                    <td>₹20.00</td>
+                    <td>₹100.00</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="bill-summary">
+            <div class="summary-row">
+                <strong>Subtotal:</strong>
+                <span id="subtotal">₹340.00</span>
+            </div>
+            <div class="summary-row">
+                <strong>Tax (5% GST):</strong>
+                <span id="taxAmount">₹17.00</span>
+            </div>
+            <div class="summary-row">
+                <strong>Discount:</strong>
+                <span id="discount">₹0.00</span>
+            </div>
+            <hr class="divider">
+            <div class="summary-row summary-total">
+                <strong>TOTAL AMOUNT:</strong>
+                <strong id="totalAmount">₹357.00</strong>
+            </div>
+        </div>
+
+        <div class="barcode">
+            |||| || ||| || |||| ||| || ||||
+            <br>
+            <span id="billBarcode">*BMS001*</span>
+        </div>
+
+        <div class="bill-footer">
+            <p class="thank-you">Thank You for Shopping with Us!</p>
+            <p>Please Visit Again</p>
+            <p style="margin-top: 15px; font-size: 12px;">
+                For queries or complaints, please contact us
+            </p>
+            <p style="font-size: 11px; color: #666;">
+                This is a computer-generated bill
+            </p>
+        </div>
+
+        <button class="print-button" onclick="window.print()">🖨️ Print Bill</button>
+    </div>
+
+    <script>
+        // Set current date and time
+        document.getElementById('billDate').textContent = new Date().toLocaleString('en-IN');
+
+        // If you want to dynamically populate bill data from URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('billNo')) {
+            document.getElementById('billNo').textContent = urlParams.get('billNo');
+        }
+        if (urlParams.get('customerName')) {
+            document.getElementById('customerName').textContent = urlParams.get('customerName');
+        }
+        if (urlParams.get('customerContact')) {
+            document.getElementById('customerContact').textContent = urlParams.get('customerContact');
+        }
+        if (urlParams.get('paymentMethod')) {
+            document.getElementById('paymentMethod').textContent = urlParams.get('paymentMethod');
+        }
+    </script>
+</body>
+</html>
