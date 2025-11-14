@@ -1,28 +1,81 @@
+// Initialize data in localStorage
+function initializeData() {
+    if (!localStorage.getItem('categories')) {
+        const categories = [
+            { id: 1, name: 'Groceries', description: 'Daily grocery items' },
+            { id: 2, name: 'Beverages', description: 'Drinks and beverages' },
+            { id: 3, name: 'Snacks', description: 'Snacks and chips' },
+            { id: 4, name: 'Dairy Products', description: 'Milk, cheese, yogurt' },
+            { id: 5, name: 'Personal Care', description: 'Toiletries' }
+        ];
+        localStorage.setItem('categories', JSON.stringify(categories));
+    }
+
+    if (!localStorage.getItem('products')) {
+        const products = [
+            { id: 1, product_code: 'BMS001', name: 'Rice 1kg', category_id: 1, price: 60.00, stock_quantity: 100 },
+            { id: 2, product_code: 'BMS002', name: 'Wheat Flour 1kg', category_id: 1, price: 45.00, stock_quantity: 80 },
+            { id: 3, product_code: 'BMS003', name: 'Coca Cola 500ml', category_id: 2, price: 40.00, stock_quantity: 150 },
+            { id: 4, product_code: 'BMS004', name: 'Pepsi 500ml', category_id: 2, price: 40.00, stock_quantity: 150 },
+            { id: 5, product_code: 'BMS005', name: 'Lays Chips', category_id: 3, price: 20.00, stock_quantity: 200 },
+            { id: 6, product_code: 'BMS006', name: 'Milk 1L', category_id: 4, price: 60.00, stock_quantity: 50 },
+            { id: 7, product_code: 'BMS007', name: 'Bread', category_id: 1, price: 35.00, stock_quantity: 60 },
+            { id: 8, product_code: 'BMS008', name: 'Toothpaste', category_id: 5, price: 85.00, stock_quantity: 75 }
+        ];
+        localStorage.setItem('products', JSON.stringify(products));
+    }
+
+    if (!localStorage.getItem('customers')) {
+        localStorage.setItem('customers', JSON.stringify([]));
+    }
+
+    if (!localStorage.getItem('sales')) {
+        localStorage.setItem('sales', JSON.stringify([]));
+    }
+}
+
+// Storage helpers
+function getCategories() {
+    return JSON.parse(localStorage.getItem('categories')) || [];
+}
+
+function getProducts() {
+    return JSON.parse(localStorage.getItem('products')) || [];
+}
+
+function getCustomers() {
+    return JSON.parse(localStorage.getItem('customers')) || [];
+}
+
+function getSales() {
+    return JSON.parse(localStorage.getItem('sales')) || [];
+}
+
+// Global variables
 let cart = [];
 let products = [];
 let categories = [];
 
-// Load initial data
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
+    initializeData();
     loadCategories();
     loadProducts();
     updateTime();
     setInterval(updateTime, 1000);
+    
+    document.getElementById('searchInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') searchProducts();
+    });
 });
 
 function updateTime() {
-    const now = new Date();
-    document.getElementById('currentTime').textContent = now.toLocaleString();
+    document.getElementById('currentTime').textContent = new Date().toLocaleString('en-IN');
 }
 
-async function loadCategories() {
-    try {
-        const response = await fetch('/api/categories');
-        categories = await response.json();
-        displayCategories();
-    } catch (error) {
-        console.error('Error loading categories:', error);
-    }
+function loadCategories() {
+    categories = getCategories();
+    displayCategories();
 }
 
 function displayCategories() {
@@ -32,15 +85,9 @@ function displayCategories() {
     ).join('');
 }
 
-async function loadProducts() {
-    try {
-        const response = await fetch('/api/products');
-        products = await response.json();
-        displayProducts(products);
-    } catch (error) {
-        console.error('Error loading products:', error);
-        alert('Error loading products');
-    }
+function loadProducts() {
+    products = getProducts();
+    displayProducts(products);
 }
 
 function displayProducts(productsToShow) {
@@ -50,16 +97,19 @@ function displayProducts(productsToShow) {
         return;
     }
     
-    grid.innerHTML = productsToShow.map(product => `
-        <div class="product-card" onclick="addToCart(${product.id})">
-            <div class="product-code">${product.product_code}</div>
-            <div class="product-name">${product.name}</div>
-            <div class="product-category">${product.category_name || 'Uncategorized'}</div>
-            <div class="product-price">₹${product.price.toFixed(2)}</div>
-            <div class="product-stock">Stock: ${product.stock_quantity}</div>
-            <button class="btn btn-sm btn-primary">Add to Cart</button>
-        </div>
-    `).join('');
+    grid.innerHTML = productsToShow.map(product => {
+        const category = categories.find(c => c.id === product.category_id);
+        return `
+            <div class="product-card" onclick="addToCart(${product.id})">
+                <div class="product-code">${product.product_code}</div>
+                <div class="product-name">${product.name}</div>
+                <div class="product-category">${category ? category.name : 'Uncategorized'}</div>
+                <div class="product-price">₹${product.price.toFixed(2)}</div>
+                <div class="product-stock">Stock: ${product.stock_quantity}</div>
+                <button class="btn btn-sm btn-primary">Add to Cart</button>
+            </div>
+        `;
+    }).join('');
 }
 
 function filterByCategory(categoryId) {
@@ -69,25 +119,22 @@ function filterByCategory(categoryId) {
     if (categoryId === 'all') {
         displayProducts(products);
     } else {
-        const filtered = products.filter(p => p.category_id === categoryId);
-        displayProducts(filtered);
+        displayProducts(products.filter(p => p.category_id === categoryId));
     }
 }
 
-async function searchProducts() {
-    const query = document.getElementById('searchInput').value;
+function searchProducts() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
     if (!query) {
         displayProducts(products);
         return;
     }
     
-    try {
-        const response = await fetch(`/api/products/search?q=${encodeURIComponent(query)}`);
-        const results = await response.json();
-        displayProducts(results);
-    } catch (error) {
-        console.error('Error searching products:', error);
-    }
+    const results = products.filter(p => 
+        p.product_code.toLowerCase().includes(query) || 
+        p.name.toLowerCase().includes(query)
+    );
+    displayProducts(results);
 }
 
 function addToCart(productId) {
@@ -177,7 +224,7 @@ function updateCart() {
     document.getElementById('total').textContent = `₹${total.toFixed(2)}`;
 }
 
-async function checkout() {
+function checkout() {
     if (cart.length === 0) {
         alert('Cart is empty!');
         return;
@@ -197,51 +244,68 @@ async function checkout() {
     const tax = subtotal * 0.05;
     const total = subtotal + tax;
     
-    const saleData = {
-        customer: {
+    // Save customer
+    let customers = getCustomers();
+    let customer = customers.find(c => c.contact === customerContact);
+    if (!customer) {
+        customer = {
+            id: customers.length + 1,
             name: customerName,
             contact: customerContact,
             email: customerEmail
-        },
+        };
+        customers.push(customer);
+        localStorage.setItem('customers', JSON.stringify(customers));
+    }
+    
+    // Create sale
+    const sales = getSales();
+    const saleId = sales.length + 1;
+    const sale = {
+        id: saleId,
+        customer_id: customer.id,
+        customer_name: customerName,
+        contact_number: customerContact,
+        total_amount: total,
+        payment_method: paymentMethod,
+        sale_date: new Date().toISOString(),
         items: cart.map(item => ({
-            id: item.id,
+            product_id: item.id,
             product_code: item.product_code,
-            name: item.name,
+            product_name: item.name,
             quantity: item.quantity,
-            price: item.price,
+            unit_price: item.price,
             subtotal: item.price * item.quantity
-        })),
-        subtotal: subtotal,
-        tax: tax,
-        total: total,
-        payment_method: paymentMethod
+        }))
     };
     
-    try {
-        const response = await fetch('/api/checkout', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(saleData)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            generateBill(result);
-            clearCart();
-            document.getElementById('customerName').value = '';
-            document.getElementById('customerContact').value = '';
-            document.getElementById('customerEmail').value = '';
-        } else {
-            alert('Error processing sale: ' + result.message);
+    sales.push(sale);
+    localStorage.setItem('sales', JSON.stringify(sales));
+    
+    // Update stock
+    products = getProducts();
+    cart.forEach(cartItem => {
+        const product = products.find(p => p.id === cartItem.id);
+        if (product) {
+            product.stock_quantity -= cartItem.quantity;
         }
-    } catch (error) {
-        console.error('Checkout error:', error);
-        alert('Error processing sale');
-    }
+    });
+    localStorage.setItem('products', JSON.stringify(products));
+    
+    // Show bill
+    generateBill(sale);
+    
+    // Clear
+    clearCart();
+    document.getElementById('customerName').value = '';
+    document.getElementById('customerContact').value = '';
+    document.getElementById('customerEmail').value = '';
+    
+    // Reload products
+    loadProducts();
 }
 
-function generateBill(saleData) {
+function generateBill(sale) {
     const billHTML = `
         <div class="bill">
             <div class="bill-header">
@@ -252,11 +316,11 @@ function generateBill(saleData) {
             </div>
             
             <div class="bill-info">
-                <p><strong>Bill No:</strong> ${saleData.sale_id}</p>
-                <p><strong>Date:</strong> ${new Date(saleData.sale.sale_date).toLocaleString()}</p>
-                <p><strong>Customer:</strong> ${saleData.sale.customer_name}</p>
-                <p><strong>Contact:</strong> ${saleData.sale.contact_number}</p>
-                <p><strong>Payment:</strong> ${saleData.sale.payment_method}</p>
+                <p><strong>Bill No:</strong> ${sale.id}</p>
+                <p><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleString('en-IN')}</p>
+                <p><strong>Customer:</strong> ${sale.customer_name}</p>
+                <p><strong>Contact:</strong> ${sale.contact_number}</p>
+                <p><strong>Payment:</strong> ${sale.payment_method}</p>
                 <hr>
             </div>
             
@@ -271,7 +335,7 @@ function generateBill(saleData) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${saleData.items.map(item => `
+                    ${sale.items.map(item => `
                         <tr>
                             <td>${item.product_code}</td>
                             <td>${item.product_name}</td>
@@ -285,9 +349,9 @@ function generateBill(saleData) {
             
             <div class="bill-summary">
                 <hr>
-                <p><strong>Subtotal:</strong> ₹${(saleData.sale.total_amount / 1.05).toFixed(2)}</p>
-                <p><strong>Tax (5%):</strong> ₹${(saleData.sale.total_amount * 0.05 / 1.05).toFixed(2)}</p>
-                <h3><strong>Total Amount:</strong> ₹${saleData.sale.total_amount.toFixed(2)}</h3>
+                <p><strong>Subtotal:</strong> ₹${(sale.total_amount / 1.05).toFixed(2)}</p>
+                <p><strong>Tax (5%):</strong> ₹${(sale.total_amount * 0.05 / 1.05).toFixed(2)}</p>
+                <h3><strong>Total Amount:</strong> ₹${sale.total_amount.toFixed(2)}</h3>
                 <hr>
             </div>
             
@@ -308,9 +372,9 @@ function printBill() {
     printWindow.document.write(`
         <html>
         <head>
-            <title>Print Bill</title>
+            <title>Print Bill - BMS Mart</title>
             <style>
-                body { font-family: Arial, sans-serif; padding: 20px; }
+                body { font-family: 'Courier New', monospace; padding: 20px; }
                 .bill { max-width: 400px; margin: 0 auto; }
                 .bill-header { text-align: center; margin-bottom: 20px; }
                 .bill-header h1 { margin: 0; font-size: 24px; }
@@ -337,13 +401,3 @@ function clearCart() {
     cart = [];
     updateCart();
 }
-
-// Allow Enter key for search
-document.addEventListener('DOMContentLoaded', function() {
-    const searchInput = document.getElementById('searchInput');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') searchProducts();
-        });
-    }
-});

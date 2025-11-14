@@ -655,3 +655,13 @@ header h1 {
         top: 0;
     }
 }
+
+@media (max-width: 1024px) {
+    .pos-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .products-grid {
+        max-height: 400px;
+    }
+}

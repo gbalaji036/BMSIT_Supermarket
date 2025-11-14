@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BMS Mart - Admin Panel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 BMS Mart - Admin Panel</h1>
+            <div class="header-actions">
+                <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to POS</button>
+            </div>
+        </header>
+
+        <div class="admin-container">
+            <!-- Statistics Dashboard -->
+            <div class="stats-grid" id="statsGrid">
+                <div class="stat-card">
+                    <h3>Total Sales</h3>
+                    <p class="stat-value" id="totalSales">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Revenue</h3>
+                    <p class="stat-value" id="totalRevenue">₹0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Products</h3>
+                    <p class="stat-value" id="totalProducts">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Customers</h3>
+                    <p class="stat-value" id="totalCustomers">0</p>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="showTab('products')">Products</button>
+                <button class="tab-btn" onclick="showTab('categories')">Categories</button>
+                <button class="tab-btn" onclick="showTab('sales')">Recent Sales</button>
+            </div>
+
+            <!-- Products Tab -->
+            <div id="productsTab" class="tab-content active">
+                <div class="section-header">
+                    <h2>Manage Products</h2>
+                    <button onclick="showAddProductForm()" class="btn btn-primary">Add New Product</button>
+                </div>
+
+                <div id="addProductForm" class="form-container" style="display: none;">
+                    <h3>Add New Product</h3>
+                    <form onsubmit="addProduct(event)">
+                        <input type="text" id="productCode" placeholder="Product Code (e.g., BMS009)" required>
+                        <input type="text" id="productName" placeholder="Product Name" required>
+                        <select id="productCategory" required>
+                            <option value="">Select Category</option>
+                        </select>
+                        <input type="number" id="productPrice" placeholder="Price" step="0.01" min="0" required>
+                        <input type="number" id="productStock" placeholder="Stock Quantity" min="0" required>
+                        <textarea id="productDescription" placeholder="Description (Optional)"></textarea>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Add Product</button>
+                            <button type="button" onclick="hideAddProductForm()" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable"></tbody>
+                </table>
+            </div>
+
+            <!-- Categories Tab -->
+            <div id="categoriesTab" class="tab-content">
+                <div class="section-header">
+                    <h2>Manage Categories</h2>
+                    <button onclick="showAddCategoryForm()" class="btn btn-primary">Add New Category</button>
+                </div>
+
+                <div id="addCategoryForm" class="form-container" style="display: none;">
+                    <h3>Add New Category</h3>
+                    <form onsubmit="addCategory(event)">
+                        <input type="text" id="categoryName" placeholder="Category Name" required>
+                        <textarea id="categoryDescription" placeholder="Description (Optional)"></textarea>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">Add Category</button>
+                            <button type="button" onclick="hideAddCategoryForm()" class="btn btn-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="categories-list" id="categoriesList"></div>
+            </div>
+
+            <!-- Sales Tab -->
+            <div id="salesTab" class="tab-content">
+                <h2>Recent Sales</h2>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Sale ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="salesTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
