@@ -22,17 +22,19 @@ function loadStats() {
 
 function displayRecentSales(sales) {
     const tbody = document.getElementById('salesTable');
+    if (!tbody) return;
+    
     if (sales.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No sales yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: var(--text-muted);">No sales recorded yet</td></tr>';
         return;
     }
     tbody.innerHTML = sales.map(sale => `
         <tr>
-            <td>#${sale.id}</td>
-            <td>${sale.customer_name}</td>
-            <td>₹${sale.total_amount.toFixed(2)}</td>
-            <td>${sale.payment_method}</td>
-            <td>${new Date(sale.sale_date).toLocaleString('en-IN')}</td>
+            <td><span class="sku-badge">#${sale.id}</span></td>
+            <td><strong>${sale.customer_name}</strong></td>
+            <td class="text-right" style="font-weight: 600; font-variant-numeric: tabular-nums;">₹${sale.total_amount.toFixed(2)}</td>
+            <td><span class="payment-badge">${sale.payment_method}</span></td>
+            <td style="color: var(--text-secondary); font-size: 12px;">${new Date(sale.sale_date).toLocaleString('en-IN')}</td>
         </tr>
     `).join('');
 }
@@ -45,18 +47,24 @@ function loadCategories() {
 
 function displayCategories(categories) {
     const container = document.getElementById('categoriesList');
+    if (!container) return;
+    
+    if (categories.length === 0) {
+        container.innerHTML = '<p style="color: var(--text-muted); padding: 20px;">No categories defined.</p>';
+        return;
+    }
+    
     container.innerHTML = categories.map(cat => `
         <div class="category-item">
-            <div>
-                <h4>${cat.name}</h4>
-                <p>${cat.description || 'No description'}</p>
-            </div>
+            <h4>${cat.name}</h4>
+            <p>${cat.description || 'No description provided'}</p>
         </div>
     `).join('');
 }
 
 function updateCategorySelect(categories) {
     const select = document.getElementById('productCategory');
+    if (!select) return;
     select.innerHTML = '<option value="">Select Category</option>' +
         categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
 }
@@ -69,21 +77,29 @@ function loadProducts() {
 
 function displayProducts(products, categories) {
     const tbody = document.getElementById('productsTable');
+    if (!tbody) return;
+    
     if (products.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No products available</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No products in catalog</td></tr>';
         return;
     }
+    
     tbody.innerHTML = products.map(product => {
         const category = categories.find(c => c.id === product.category_id);
+        const isOutOfStock = product.stock_quantity <= 0;
         return `
             <tr>
-                <td>${product.product_code}</td>
-                <td>${product.name}</td>
-                <td>${category ? category.name : 'N/A'}</td>
-                <td>₹${product.price.toFixed(2)}</td>
-                <td>${product.stock_quantity}</td>
-                <td>
-                    <button onclick="deleteProduct(${product.id})" class="btn btn-sm btn-danger">Delete</button>
+                <td><span class="sku-badge">${product.product_code}</span></td>
+                <td><strong>${product.name}</strong></td>
+                <td><span class="category-tag">${category ? category.name : 'Uncategorized'}</span></td>
+                <td class="text-right" style="font-weight: 600; font-variant-numeric: tabular-nums;">₹${product.price.toFixed(2)}</td>
+                <td class="text-right">
+                    <span class="stock-pill ${isOutOfStock ? 'stock-empty' : product.stock_quantity <= 10 ? 'stock-low' : 'stock-ok'}">
+                        ${product.stock_quantity}
+                    </span>
+                </td>
+                <td class="text-right">
+                    <button onclick="deleteProduct(${product.id})" class="btn-ghost-danger">Delete</button>
                 </td>
             </tr>
         `;
@@ -94,51 +110,61 @@ function showTab(tabName) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
-    event.target.classList.add('active');
-    document.getElementById(tabName + 'Tab').classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
+    
+    const targetTab = document.getElementById(tabName + 'Tab');
+    if (targetTab) {
+        targetTab.classList.add('active');
+    }
 }
 
 function showAddProductForm() {
-    document.getElementById('addProductForm').style.display = 'block';
+    const form = document.getElementById('addProductForm');
+    if (form) form.style.display = 'block';
 }
 
 function hideAddProductForm() {
-    document.getElementById('addProductForm').style.display = 'none';
-    document.querySelector('#addProductForm form').reset();
+    const form = document.getElementById('addProductForm');
+    if (form) {
+        form.style.display = 'none';
+        form.querySelector('form').reset();
+    }
 }
 
 function addProduct(event) {
     event.preventDefault();
     
     const products = getProducts();
-    const productCode = document.getElementById('productCode').value;
+    const productCode = document.getElementById('productCode').value.trim().toUpperCase();
     
     if (products.find(p => p.product_code === productCode)) {
-        alert('Product code already exists!');
+        alert('Product SKU code already exists!');
         return;
     }
     
     const newProduct = {
-        id: products.length + 1,
+        id: products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1,
         product_code: productCode,
-        name: document.getElementById('productName').value,
+        name: document.getElementById('productName').value.trim(),
         category_id: parseInt(document.getElementById('productCategory').value),
         price: parseFloat(document.getElementById('productPrice').value),
         stock_quantity: parseInt(document.getElementById('productStock').value),
-        description: document.getElementById('productDescription').value
+        description: document.getElementById('productDescription').value.trim()
     };
     
     products.push(newProduct);
     localStorage.setItem('products', JSON.stringify(products));
     
-    alert('Product added successfully!');
+    alert('Product added successfully to catalog!');
     hideAddProductForm();
     loadProducts();
     loadStats();
 }
 
 function deleteProduct(productId) {
-    if (!confirm('Are you sure you want to delete this product?')) return;
+    if (!confirm('Are you sure you want to delete this product SKU?')) return;
     
     let products = getProducts();
     products = products.filter(p => p.id !== productId);
@@ -150,41 +176,45 @@ function deleteProduct(productId) {
 }
 
 function showAddCategoryForm() {
-    document.getElementById('addCategoryForm').style.display = 'block';
+    const form = document.getElementById('addCategoryForm');
+    if (form) form.style.display = 'block';
 }
 
 function hideAddCategoryForm() {
-    document.getElementById('addCategoryForm').style.display = 'none';
-    document.querySelector('#addCategoryForm form').reset();
+    const form = document.getElementById('addCategoryForm');
+    if (form) {
+        form.style.display = 'none';
+        form.querySelector('form').reset();
+    }
 }
 
 function addCategory(event) {
     event.preventDefault();
     
     const categories = getCategories();
-    const categoryName = document.getElementById('categoryName').value;
+    const categoryName = document.getElementById('categoryName').value.trim();
     
-    if (categories.find(c => c.name === categoryName)) {
-        alert('Category already exists!');
+    if (categories.find(c => c.name.toLowerCase() === categoryName.toLowerCase())) {
+        alert('Category name already exists!');
         return;
     }
     
     const newCategory = {
-        id: categories.length + 1,
+        id: categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 1,
         name: categoryName,
-        description: document.getElementById('categoryDescription').value
+        description: document.getElementById('categoryDescription').value.trim()
     };
     
     categories.push(newCategory);
     localStorage.setItem('categories', JSON.stringify(categories));
     
-    alert('Category added successfully!');
+    alert('Category created successfully!');
     hideAddCategoryForm();
     loadCategories();
     loadStats();
 }
 
-// Helper functions
+// Storage helpers
 function getCategories() {
     return JSON.parse(localStorage.getItem('categories')) || [];
 }
@@ -211,7 +241,7 @@ function getTaxSettings() {
     }
 }
 
-// Tax Settings Functions
+// Tax Configuration Functions
 function loadTaxSettings() {
     const settings = getTaxSettings();
     const cgstInput = document.getElementById('cgstRate');

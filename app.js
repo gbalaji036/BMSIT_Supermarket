@@ -78,13 +78,28 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTime();
     setInterval(updateTime, 1000);
     
-    document.getElementById('searchInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') searchProducts();
-    });
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchProducts();
+        });
+        searchInput.addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                displayProducts(products);
+            }
+        });
+    }
 });
 
 function updateTime() {
-    document.getElementById('currentTime').textContent = new Date().toLocaleString('en-IN');
+    const timeEl = document.getElementById('currentTime');
+    if (timeEl) {
+        timeEl.textContent = new Date().toLocaleTimeString('en-IN', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    }
 }
 
 function loadCategories() {
@@ -94,6 +109,7 @@ function loadCategories() {
 
 function displayCategories() {
     const container = document.getElementById('categoriesContainer');
+    if (!container) return;
     container.innerHTML = categories.map(cat => 
         `<button class="category-btn" onclick="filterByCategory(${cat.id})">${cat.name}</button>`
     ).join('');
@@ -106,21 +122,34 @@ function loadProducts() {
 
 function displayProducts(productsToShow) {
     const grid = document.getElementById('productsGrid');
+    if (!grid) return;
+    
     if (productsToShow.length === 0) {
-        grid.innerHTML = '<p class="no-products">No products found</p>';
+        grid.innerHTML = '<p class="no-products">No matching products found</p>';
         return;
     }
     
     grid.innerHTML = productsToShow.map(product => {
         const category = categories.find(c => c.id === product.category_id);
+        const isOutOfStock = product.stock_quantity <= 0;
+        const isLowStock = product.stock_quantity > 0 && product.stock_quantity <= 10;
+        
         return `
-            <div class="product-card" onclick="addToCart(${product.id})">
-                <div class="product-code">${product.product_code}</div>
+            <div class="product-card ${isOutOfStock ? 'out-of-stock' : ''}" onclick="addToCart(${product.id})">
+                <div class="product-card-header">
+                    <span class="sku-badge">${product.product_code}</span>
+                    <span class="stock-pill ${isOutOfStock ? 'stock-empty' : isLowStock ? 'stock-low' : 'stock-ok'}">
+                        ${isOutOfStock ? 'Out of Stock' : `${product.stock_quantity} in stock`}
+                    </span>
+                </div>
                 <div class="product-name">${product.name}</div>
                 <div class="product-category">${category ? category.name : 'Uncategorized'}</div>
-                <div class="product-price">₹${product.price.toFixed(2)}</div>
-                <div class="product-stock">Stock: ${product.stock_quantity}</div>
-                <button class="btn btn-sm btn-primary">Add to Cart</button>
+                <div class="product-card-footer">
+                    <div class="product-price">₹${product.price.toFixed(2)}</div>
+                    <button class="btn-card-add" ${isOutOfStock ? 'disabled' : ''} onclick="event.stopPropagation(); addToCart(${product.id})">
+                        ${isOutOfStock ? 'Sold Out' : '+ Add'}
+                    </button>
+                </div>
             </div>
         `;
     }).join('');
@@ -128,7 +157,9 @@ function displayProducts(productsToShow) {
 
 function filterByCategory(categoryId) {
     document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    if (event && event.target) {
+        event.target.classList.add('active');
+    }
     
     if (categoryId === 'all') {
         displayProducts(products);
@@ -138,7 +169,7 @@ function filterByCategory(categoryId) {
 }
 
 function searchProducts() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
+    const query = document.getElementById('searchInput').value.trim().toLowerCase();
     if (!query) {
         displayProducts(products);
         return;
@@ -156,14 +187,14 @@ function addToCart(productId) {
     if (!product) return;
     
     if (product.stock_quantity <= 0) {
-        alert('Product out of stock!');
+        alert('Product is out of stock!');
         return;
     }
     
     const existingItem = cart.find(item => item.id === productId);
     if (existingItem) {
         if (existingItem.quantity >= product.stock_quantity) {
-            alert('Cannot add more than available stock!');
+            alert('Cannot add more than available physical stock!');
             return;
         }
         existingItem.quantity++;
@@ -194,23 +225,30 @@ function updateQuantity(productId, change) {
     if (item.quantity <= 0) {
         removeFromCart(productId);
     } else if (item.quantity > item.max_stock) {
-        alert('Cannot exceed available stock!');
+        alert('Cannot exceed available physical stock!');
         item.quantity = item.max_stock;
+        updateCart();
+    } else {
+        updateCart();
     }
-    
-    updateCart();
 }
 
 function updateCart() {
     const cartItemsContainer = document.getElementById('cartItems');
+    const cartCountBadge = document.getElementById('cartCountBadge');
     const taxSettings = getTaxSettings();
     
+    const totalItemUnits = cart.reduce((sum, item) => sum + item.quantity, 0);
+    if (cartCountBadge) {
+        cartCountBadge.textContent = `${totalItemUnits} ${totalItemUnits === 1 ? 'item' : 'items'}`;
+    }
+    
     if (cart.length === 0) {
-        cartItemsContainer.innerHTML = '<p class="empty-cart">Cart is empty</p>';
+        cartItemsContainer.innerHTML = '<p class="empty-cart">No items in active order basket</p>';
         document.getElementById('subtotal').textContent = '₹0.00';
-        document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%):`;
+        document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%)`;
         document.getElementById('cgst').textContent = '₹0.00';
-        document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%):`;
+        document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%)`;
         document.getElementById('sgst').textContent = '₹0.00';
         document.getElementById('total').textContent = '₹0.00';
         return;
@@ -220,16 +258,18 @@ function updateCart() {
         <div class="cart-item">
             <div class="item-details">
                 <div class="item-name">${item.name}</div>
-                <div class="item-code">${item.product_code}</div>
-                <div class="item-price">₹${item.price.toFixed(2)} × ${item.quantity}</div>
+                <div class="item-meta">
+                    <span class="sku-badge">${item.product_code}</span>
+                    <span class="item-price">₹${item.price.toFixed(2)} ea</span>
+                </div>
             </div>
             <div class="item-actions">
-                <button onclick="updateQuantity(${item.id}, -1)" class="btn-icon">−</button>
+                <button onclick="updateQuantity(${item.id}, -1)" class="btn-icon" title="Decrease">−</button>
                 <span class="quantity">${item.quantity}</span>
-                <button onclick="updateQuantity(${item.id}, 1)" class="btn-icon">+</button>
-                <button onclick="removeFromCart(${item.id})" class="btn-icon btn-remove">×</button>
+                <button onclick="updateQuantity(${item.id}, 1)" class="btn-icon" title="Increase">+</button>
             </div>
             <div class="item-total">₹${(item.price * item.quantity).toFixed(2)}</div>
+            <button onclick="removeFromCart(${item.id})" class="btn-remove" title="Remove line item">×</button>
         </div>
     `).join('');
     
@@ -239,16 +279,16 @@ function updateCart() {
     const total = subtotal + cgstAmount + sgstAmount;
     
     document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%):`;
+    document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%)`;
     document.getElementById('cgst').textContent = `₹${cgstAmount.toFixed(2)}`;
-    document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%):`;
+    document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%)`;
     document.getElementById('sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
     document.getElementById('total').textContent = `₹${total.toFixed(2)}`;
 }
 
 function checkout() {
     if (cart.length === 0) {
-        alert('Cart is empty!');
+        alert('Cannot checkout with an empty basket!');
         return;
     }
     
@@ -258,7 +298,7 @@ function checkout() {
     const paymentMethod = document.getElementById('paymentMethod').value;
     
     if (!customerName || !customerContact) {
-        alert('Please enter customer name and contact number!');
+        alert('Please enter customer name and contact phone number!');
         return;
     }
     
@@ -268,7 +308,7 @@ function checkout() {
     const sgstAmount = subtotal * (taxSettings.sgst / 100);
     const total = subtotal + cgstAmount + sgstAmount;
     
-    // Save customer
+    // Save or upsert customer
     let customers = getCustomers();
     let customer = customers.find(c => c.contact === customerContact);
     if (!customer) {
@@ -282,7 +322,7 @@ function checkout() {
         localStorage.setItem('customers', JSON.stringify(customers));
     }
     
-    // Create sale
+    // Create sale record
     const sales = getSales();
     const saleId = sales.length + 1;
     const sale = {
@@ -311,26 +351,26 @@ function checkout() {
     sales.push(sale);
     localStorage.setItem('sales', JSON.stringify(sales));
     
-    // Update stock
+    // Deduct stock from inventory
     products = getProducts();
     cart.forEach(cartItem => {
         const product = products.find(p => p.id === cartItem.id);
         if (product) {
-            product.stock_quantity -= cartItem.quantity;
+            product.stock_quantity = Math.max(0, product.stock_quantity - cartItem.quantity);
         }
     });
     localStorage.setItem('products', JSON.stringify(products));
     
-    // Show bill
+    // Render Receipt Modal
     generateBill(sale);
     
-    // Clear
+    // Clear cart and form inputs
     clearCart();
     document.getElementById('customerName').value = '';
     document.getElementById('customerContact').value = '';
     document.getElementById('customerEmail').value = '';
     
-    // Reload products
+    // Reload catalog display with updated stock levels
     loadProducts();
 }
 
@@ -351,54 +391,52 @@ function generateBill(sale) {
             <div class="bill-header">
                 <h1>BMS MART</h1>
                 <p>Supermarket & General Store</p>
-                <p>Contact: +91-XXXXXXXXXX</p>
-                <hr>
+                <p>Tax Invoice / Cash Receipt</p>
+                <hr style="border: none; border-top: 1px dashed #000; margin: 8px 0;">
             </div>
             
             <div class="bill-info">
-                <p><strong>Bill No:</strong> ${sale.id}</p>
-                <p><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleString('en-IN')}</p>
-                <p><strong>Customer:</strong> ${sale.customer_name}</p>
-                <p><strong>Contact:</strong> ${sale.contact_number}</p>
-                <p><strong>Payment:</strong> ${sale.payment_method}</p>
-                <hr>
+                <div><strong>Invoice #:</strong> ${sale.id}</div>
+                <div><strong>Date:</strong> ${new Date(sale.sale_date).toLocaleString('en-IN')}</div>
+                <div><strong>Customer:</strong> ${sale.customer_name}</div>
+                <div><strong>Phone:</strong> ${sale.contact_number}</div>
+                <div><strong>Tender:</strong> ${sale.payment_method}</div>
+                <hr style="border: none; border-top: 1px dashed #000; margin: 8px 0;">
             </div>
             
             <table class="bill-table">
                 <thead>
                     <tr>
-                        <th>Code</th>
                         <th>Item</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Total</th>
+                        <th style="text-align:center;">Qty</th>
+                        <th style="text-align:right;">Price</th>
+                        <th style="text-align:right;">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${sale.items.map(item => `
                         <tr>
-                            <td>${item.product_code}</td>
-                            <td>${item.product_name}</td>
-                            <td>${item.quantity}</td>
-                            <td>₹${item.unit_price.toFixed(2)}</td>
-                            <td>₹${item.subtotal.toFixed(2)}</td>
+                            <td>${item.product_name}<br><small style="color:#666;">[${item.product_code}]</small></td>
+                            <td style="text-align:center;">${item.quantity}</td>
+                            <td style="text-align:right;">₹${item.unit_price.toFixed(2)}</td>
+                            <td style="text-align:right;">₹${item.subtotal.toFixed(2)}</td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
             
             <div class="bill-summary">
-                <hr>
+                <hr style="border: none; border-top: 1px dashed #000; margin: 8px 0;">
                 <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
                 <p><strong>CGST (${cgstRate}%):</strong> ₹${cgstAmount.toFixed(2)}</p>
                 <p><strong>SGST (${sgstRate}%):</strong> ₹${sgstAmount.toFixed(2)}</p>
-                <h3><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</h3>
-                <hr>
+                <h3 style="margin-top: 6px; font-size: 15px;"><strong>Total Payable:</strong> ₹${totalAmount.toFixed(2)}</h3>
+                <hr style="border: none; border-top: 1px dashed #000; margin: 8px 0;">
             </div>
             
             <div class="bill-footer">
-                <p>Thank you for shopping with us!</p>
-                <p>Visit again!</p>
+                <p>Thank you for shopping at BMS Mart!</p>
+                <p>GST registered tax invoice</p>
             </div>
         </div>
     `;
@@ -409,31 +447,37 @@ function generateBill(sale) {
 
 function printBill() {
     const billContent = document.getElementById('billContainer').innerHTML;
-    const printWindow = window.open('', '', 'height=600,width=800');
+    const printWindow = window.open('', '', 'height=650,width=450');
     printWindow.document.write(`
         <html>
         <head>
-            <title>Print Bill - BMS Mart</title>
+            <title>Receipt - BMS Mart</title>
             <style>
-                body { font-family: 'Courier New', monospace; padding: 20px; }
-                .bill { max-width: 400px; margin: 0 auto; }
-                .bill-header { text-align: center; margin-bottom: 20px; }
-                .bill-header h1 { margin: 0; font-size: 24px; }
-                .bill-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
-                .bill-table th, .bill-table td { padding: 5px; text-align: left; border-bottom: 1px solid #ddd; }
-                .bill-table th { background: #f8f9fa; font-weight: 700; }
-                .bill-summary { margin-top: 10px; text-align: right; }
-                .bill-summary p { margin: 4px 0; font-size: 14px; }
-                .bill-summary h3 { margin: 8px 0; font-size: 16px; }
-                .bill-footer { text-align: center; margin-top: 20px; }
-                hr { border: none; border-top: 2px dashed #000; margin: 10px 0; }
+                body { font-family: ui-monospace, 'Courier New', monospace; padding: 12px; margin: 0; }
+                .bill { width: 100%; max-width: 380px; margin: 0 auto; font-size: 12px; }
+                .bill-header { text-align: center; margin-bottom: 12px; }
+                .bill-header h1 { margin: 0; font-size: 18px; font-weight: 700; }
+                .bill-header p { margin: 2px 0; font-size: 11px; }
+                .bill-info div { margin: 2px 0; font-size: 11px; }
+                .bill-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 11px; }
+                .bill-table th, .bill-table td { padding: 4px 2px; }
+                .bill-table th { border-bottom: 1px solid #000; font-weight: 700; text-align: left; }
+                .bill-table td { border-bottom: 1px dashed #ccc; }
+                .bill-summary { margin-top: 8px; text-align: right; }
+                .bill-summary p { margin: 2px 0; font-size: 11px; }
+                .bill-summary h3 { margin: 4px 0; font-size: 14px; font-weight: 700; }
+                .bill-footer { text-align: center; margin-top: 16px; font-size: 10px; color: #555; }
+                hr { border: none; border-top: 1px dashed #000; margin: 6px 0; }
             </style>
         </head>
         <body>${billContent}</body>
         </html>
     `);
     printWindow.document.close();
-    printWindow.print();
+    printWindow.focus();
+    setTimeout(() => {
+        printWindow.print();
+    }, 250);
 }
 
 function closeBill() {

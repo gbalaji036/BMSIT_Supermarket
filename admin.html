@@ -9,96 +9,126 @@
 <body>
     <div class="container">
         <header>
-            <h1>🛒 BMS Mart - Admin Panel</h1>
+            <div class="brand-wrapper">
+                <h1>⚙️ BMS Mart - Management Console</h1>
+            </div>
             <div class="header-actions">
-                <button onclick="window.location.href='index.html'" class="btn btn-secondary">Back to POS</button>
+                <button onclick="window.location.href='index.html'" class="btn btn-outline">Back to POS Terminal</button>
             </div>
         </header>
 
         <div class="admin-container">
-            <!-- Statistics Dashboard -->
+            <!-- 4 Clean Metric Micro-Cards -->
             <div class="stats-grid" id="statsGrid">
                 <div class="stat-card">
-                    <h3>Total Sales</h3>
+                    <div class="stat-label">Total Orders</div>
                     <p class="stat-value" id="totalSales">0</p>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Revenue</h3>
-                    <p class="stat-value" id="totalRevenue">₹0</p>
+                    <div class="stat-label">Total Revenue</div>
+                    <p class="stat-value" id="totalRevenue">₹0.00</p>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Products</h3>
+                    <div class="stat-label">Active SKUs</div>
                     <p class="stat-value" id="totalProducts">0</p>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Customers</h3>
+                    <div class="stat-label">Registered Customers</div>
                     <p class="stat-value" id="totalCustomers">0</p>
                 </div>
             </div>
 
-            <!-- Tabs -->
+            <!-- Tab Navigation Bar -->
             <div class="tabs">
-                <button class="tab-btn active" onclick="showTab('products')">Products</button>
-                <button class="tab-btn" onclick="showTab('categories')">Categories</button>
-                <button class="tab-btn" onclick="showTab('sales')">Recent Sales</button>
-                <button class="tab-btn" onclick="showTab('tax')">Tax Settings</button>
+                <button class="tab-btn active" onclick="showTab('products')">Products Catalog</button>
+                <button class="tab-btn" onclick="showTab('categories')">Departments</button>
+                <button class="tab-btn" onclick="showTab('sales')">Sales Ledger</button>
+                <button class="tab-btn" onclick="showTab('tax')">Tax Configuration (GST Settings)</button>
             </div>
 
             <!-- Products Tab -->
             <div id="productsTab" class="tab-content active">
                 <div class="section-header">
-                    <h2>Manage Products</h2>
-                    <button onclick="showAddProductForm()" class="btn btn-primary">Add New Product</button>
+                    <h2>Inventory & SKU Management</h2>
+                    <button onclick="showAddProductForm()" class="btn btn-primary">+ Add New Product</button>
                 </div>
 
-                <div id="addProductForm" class="form-container" style="display: none;">
-                    <h3>Add New Product</h3>
+                <div id="addProductForm" class="form-container" style="display: none; max-width: 600px;">
+                    <h3>Add New Catalog Item</h3>
                     <form onsubmit="addProduct(event)">
-                        <input type="text" id="productCode" placeholder="Product Code (e.g., BMS009)" required>
-                        <input type="text" id="productName" placeholder="Product Name" required>
-                        <select id="productCategory" required>
-                            <option value="">Select Category</option>
-                        </select>
-                        <input type="number" id="productPrice" placeholder="Price" step="0.01" min="0" required>
-                        <input type="number" id="productStock" placeholder="Stock Quantity" min="0" required>
-                        <textarea id="productDescription" placeholder="Description (Optional)"></textarea>
+                        <div class="form-group">
+                            <label for="productCode">Product SKU Code *</label>
+                            <input type="text" id="productCode" class="form-control" placeholder="e.g., BMS009" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productName">Product Name *</label>
+                            <input type="text" id="productName" class="form-control" placeholder="Item title and size" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="productCategory">Category *</label>
+                            <select id="productCategory" class="form-control" required>
+                                <option value="">Select Category</option>
+                            </select>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                            <div class="form-group">
+                                <label for="productPrice">Price (₹) *</label>
+                                <input type="number" id="productPrice" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="productStock">Initial Stock *</label>
+                                <input type="number" id="productStock" class="form-control" placeholder="0" min="0" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="productDescription">Description</label>
+                            <textarea id="productDescription" class="form-control" placeholder="Optional notes..."></textarea>
+                        </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-success">Add Product</button>
-                            <button type="button" onclick="hideAddProductForm()" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Save Product</button>
+                            <button type="button" onclick="hideAddProductForm()" class="btn btn-outline">Cancel</button>
                         </div>
                     </form>
                 </div>
 
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Name</th>
-                            <th>Category</th>
-                            <th>Price</th>
-                            <th>Stock</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="productsTable"></tbody>
-                </table>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 120px;">SKU Code</th>
+                                <th>Product Name</th>
+                                <th>Category</th>
+                                <th class="text-right">Price</th>
+                                <th class="text-right">Stock</th>
+                                <th class="text-right" style="width: 100px;">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTable"></tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Categories Tab -->
             <div id="categoriesTab" class="tab-content">
                 <div class="section-header">
-                    <h2>Manage Categories</h2>
-                    <button onclick="showAddCategoryForm()" class="btn btn-primary">Add New Category</button>
+                    <h2>Store Departments & Categories</h2>
+                    <button onclick="showAddCategoryForm()" class="btn btn-primary">+ Add New Category</button>
                 </div>
 
-                <div id="addCategoryForm" class="form-container" style="display: none;">
-                    <h3>Add New Category</h3>
+                <div id="addCategoryForm" class="form-container" style="display: none; max-width: 500px;">
+                    <h3>Add Department Category</h3>
                     <form onsubmit="addCategory(event)">
-                        <input type="text" id="categoryName" placeholder="Category Name" required>
-                        <textarea id="categoryDescription" placeholder="Description (Optional)"></textarea>
+                        <div class="form-group">
+                            <label for="categoryName">Category Name *</label>
+                            <input type="text" id="categoryName" class="form-control" placeholder="e.g., Household Goods" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="categoryDescription">Description</label>
+                            <textarea id="categoryDescription" class="form-control" placeholder="Optional category scope..."></textarea>
+                        </div>
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-success">Add Category</button>
-                            <button type="button" onclick="hideAddCategoryForm()" class="btn btn-secondary">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Create Category</button>
+                            <button type="button" onclick="hideAddCategoryForm()" class="btn btn-outline">Cancel</button>
                         </div>
                     </form>
                 </div>
@@ -108,40 +138,54 @@
 
             <!-- Sales Tab -->
             <div id="salesTab" class="tab-content">
-                <h2>Recent Sales</h2>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Sale ID</th>
-                            <th>Customer</th>
-                            <th>Amount</th>
-                            <th>Payment Method</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody id="salesTable"></tbody>
-                </table>
+                <div class="section-header">
+                    <h2>Recent Sales Ledger</h2>
+                </div>
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Sale ID</th>
+                                <th>Customer Name</th>
+                                <th class="text-right">Order Total</th>
+                                <th>Payment Tender</th>
+                                <th>Timestamp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="salesTable"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <!-- Tax Settings Tab -->
+            <!-- Tax Configuration Tab -->
             <div id="taxTab" class="tab-content">
                 <div class="section-header">
                     <h2>Tax Configuration (GST Settings)</h2>
                 </div>
-                <div class="form-container" style="max-width: 500px;">
-                    <h3>Configure GST Rates</h3>
+                
+                <div class="form-container" style="max-width: 480px;">
+                    <h3>Standard Store GST Rates</h3>
+                    <p style="color: var(--text-secondary); font-size: 13px; margin-bottom: 16px;">
+                        Set standard central and state tax rates. The terminal checkout dynamically calculates CGST and SGST splits on subtotal.
+                    </p>
                     <form id="taxSettingsForm" onsubmit="saveTaxSettings(event)">
-                        <label for="cgstRate" style="display:block; margin-bottom: 5px; font-weight: 600;">CGST Rate (%):</label>
-                        <input type="number" id="cgstRate" step="0.01" min="0" max="100" placeholder="e.g., 2.5" required oninput="calculateTotalGST()">
+                        <div class="form-group">
+                            <label for="cgstRate">CGST Rate (%)</label>
+                            <input type="number" id="cgstRate" class="form-control" step="0.01" min="0" max="100" placeholder="e.g., 2.5" required oninput="calculateTotalGST()">
+                        </div>
 
-                        <label for="sgstRate" style="display:block; margin-bottom: 5px; font-weight: 600;">SGST Rate (%):</label>
-                        <input type="number" id="sgstRate" step="0.01" min="0" max="100" placeholder="e.g., 2.5" required oninput="calculateTotalGST()">
+                        <div class="form-group">
+                            <label for="sgstRate">SGST Rate (%)</label>
+                            <input type="number" id="sgstRate" class="form-control" step="0.01" min="0" max="100" placeholder="e.g., 2.5" required oninput="calculateTotalGST()">
+                        </div>
 
-                        <label for="totalGSTRate" style="display:block; margin-bottom: 5px; font-weight: 600;">Total GST (%):</label>
-                        <input type="text" id="totalGSTRate" readonly style="background: #e9ecef; cursor: not-allowed; font-weight: 700; color: #28a745;">
+                        <div class="form-group">
+                            <label for="totalGSTRate">Total GST (%) - Preview</label>
+                            <input type="text" id="totalGSTRate" class="form-control" readonly style="background: #f1f5f9; cursor: not-allowed; font-weight: 700; color: #16a34a;">
+                        </div>
 
                         <div class="form-actions">
-                            <button type="submit" class="btn btn-success">Save Tax Settings</button>
+                            <button type="submit" class="btn btn-primary">Save Tax Settings</button>
                         </div>
                     </form>
                 </div>
