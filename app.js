@@ -32,6 +32,10 @@ function initializeData() {
     if (!localStorage.getItem('sales')) {
         localStorage.setItem('sales', JSON.stringify([]));
     }
+
+    if (!localStorage.getItem('tax_settings')) {
+        localStorage.setItem('tax_settings', JSON.stringify({ cgst: 2.5, sgst: 2.5 }));
+    }
 }
 
 // Storage helpers
@@ -49,6 +53,16 @@ function getCustomers() {
 
 function getSales() {
     return JSON.parse(localStorage.getItem('sales')) || [];
+}
+
+function getTaxSettings() {
+    const defaultSettings = { cgst: 2.5, sgst: 2.5 };
+    try {
+        const saved = localStorage.getItem('tax_settings');
+        return saved ? JSON.parse(saved) : defaultSettings;
+    } catch (e) {
+        return defaultSettings;
+    }
 }
 
 // Global variables
@@ -189,11 +203,15 @@ function updateQuantity(productId, change) {
 
 function updateCart() {
     const cartItemsContainer = document.getElementById('cartItems');
+    const taxSettings = getTaxSettings();
     
     if (cart.length === 0) {
         cartItemsContainer.innerHTML = '<p class="empty-cart">Cart is empty</p>';
         document.getElementById('subtotal').textContent = '₹0.00';
-        document.getElementById('tax').textContent = '₹0.00';
+        document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%):`;
+        document.getElementById('cgst').textContent = '₹0.00';
+        document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%):`;
+        document.getElementById('sgst').textContent = '₹0.00';
         document.getElementById('total').textContent = '₹0.00';
         return;
     }
@@ -216,11 +234,15 @@ function updateCart() {
     `).join('');
     
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
+    const cgstAmount = subtotal * (taxSettings.cgst / 100);
+    const sgstAmount = subtotal * (taxSettings.sgst / 100);
+    const total = subtotal + cgstAmount + sgstAmount;
     
     document.getElementById('subtotal').textContent = `₹${subtotal.toFixed(2)}`;
-    document.getElementById('tax').textContent = `₹${tax.toFixed(2)}`;
+    document.getElementById('cgstLabel').textContent = `CGST (${taxSettings.cgst}%):`;
+    document.getElementById('cgst').textContent = `₹${cgstAmount.toFixed(2)}`;
+    document.getElementById('sgstLabel').textContent = `SGST (${taxSettings.sgst}%):`;
+    document.getElementById('sgst').textContent = `₹${sgstAmount.toFixed(2)}`;
     document.getElementById('total').textContent = `₹${total.toFixed(2)}`;
 }
 
@@ -241,8 +263,10 @@ function checkout() {
     }
     
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
+    const taxSettings = getTaxSettings();
+    const cgstAmount = subtotal * (taxSettings.cgst / 100);
+    const sgstAmount = subtotal * (taxSettings.sgst / 100);
+    const total = subtotal + cgstAmount + sgstAmount;
     
     // Save customer
     let customers = getCustomers();
@@ -266,6 +290,11 @@ function checkout() {
         customer_id: customer.id,
         customer_name: customerName,
         contact_number: customerContact,
+        subtotal: subtotal,
+        cgst_rate: taxSettings.cgst,
+        cgst_amount: cgstAmount,
+        sgst_rate: taxSettings.sgst,
+        sgst_amount: sgstAmount,
         total_amount: total,
         payment_method: paymentMethod,
         sale_date: new Date().toISOString(),
@@ -306,6 +335,17 @@ function checkout() {
 }
 
 function generateBill(sale) {
+    const taxSettings = getTaxSettings();
+    const subtotal = sale.subtotal !== undefined 
+        ? sale.subtotal 
+        : (sale.items ? sale.items.reduce((sum, item) => sum + item.subtotal, 0) : sale.total_amount / 1.05);
+    
+    const cgstRate = sale.cgst_rate !== undefined ? sale.cgst_rate : taxSettings.cgst;
+    const sgstRate = sale.sgst_rate !== undefined ? sale.sgst_rate : taxSettings.sgst;
+    const cgstAmount = sale.cgst_amount !== undefined ? sale.cgst_amount : (subtotal * (cgstRate / 100));
+    const sgstAmount = sale.sgst_amount !== undefined ? sale.sgst_amount : (subtotal * (sgstRate / 100));
+    const totalAmount = sale.total_amount !== undefined ? sale.total_amount : (subtotal + cgstAmount + sgstAmount);
+
     const billHTML = `
         <div class="bill">
             <div class="bill-header">
@@ -349,9 +389,10 @@ function generateBill(sale) {
             
             <div class="bill-summary">
                 <hr>
-                <p><strong>Subtotal:</strong> ₹${(sale.total_amount / 1.05).toFixed(2)}</p>
-                <p><strong>Tax (5%):</strong> ₹${(sale.total_amount * 0.05 / 1.05).toFixed(2)}</p>
-                <h3><strong>Total Amount:</strong> ₹${sale.total_amount.toFixed(2)}</h3>
+                <p><strong>Subtotal:</strong> ₹${subtotal.toFixed(2)}</p>
+                <p><strong>CGST (${cgstRate}%):</strong> ₹${cgstAmount.toFixed(2)}</p>
+                <p><strong>SGST (${sgstRate}%):</strong> ₹${sgstAmount.toFixed(2)}</p>
+                <h3><strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}</h3>
                 <hr>
             </div>
             
@@ -381,7 +422,9 @@ function printBill() {
                 .bill-table { width: 100%; border-collapse: collapse; margin: 10px 0; }
                 .bill-table th, .bill-table td { padding: 5px; text-align: left; border-bottom: 1px solid #ddd; }
                 .bill-table th { background: #f8f9fa; font-weight: 700; }
-                .bill-summary { margin-top: 10px; }
+                .bill-summary { margin-top: 10px; text-align: right; }
+                .bill-summary p { margin: 4px 0; font-size: 14px; }
+                .bill-summary h3 { margin: 8px 0; font-size: 16px; }
                 .bill-footer { text-align: center; margin-top: 20px; }
                 hr { border: none; border-top: 2px dashed #000; margin: 10px 0; }
             </style>

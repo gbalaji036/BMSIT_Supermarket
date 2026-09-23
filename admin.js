@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadStats();
     loadCategories();
     loadProducts();
+    loadTaxSettings();
 });
 
 function loadStats() {
@@ -198,4 +199,55 @@ function getCustomers() {
 
 function getSales() {
     return JSON.parse(localStorage.getItem('sales')) || [];
+}
+
+function getTaxSettings() {
+    const defaultSettings = { cgst: 2.5, sgst: 2.5 };
+    try {
+        const saved = localStorage.getItem('tax_settings');
+        return saved ? JSON.parse(saved) : defaultSettings;
+    } catch (e) {
+        return defaultSettings;
+    }
+}
+
+// Tax Settings Functions
+function loadTaxSettings() {
+    const settings = getTaxSettings();
+    const cgstInput = document.getElementById('cgstRate');
+    const sgstInput = document.getElementById('sgstRate');
+    if (cgstInput && sgstInput) {
+        cgstInput.value = settings.cgst;
+        sgstInput.value = settings.sgst;
+        calculateTotalGST();
+    }
+}
+
+function calculateTotalGST() {
+    const cgst = parseFloat(document.getElementById('cgstRate').value) || 0;
+    const sgst = parseFloat(document.getElementById('sgstRate').value) || 0;
+    const totalInput = document.getElementById('totalGSTRate');
+    if (totalInput) {
+        totalInput.value = `${(cgst + sgst).toFixed(2)}%`;
+    }
+}
+
+function saveTaxSettings(event) {
+    event.preventDefault();
+    const cgst = parseFloat(document.getElementById('cgstRate').value);
+    const sgst = parseFloat(document.getElementById('sgstRate').value);
+
+    if (isNaN(cgst) || cgst < 0 || isNaN(sgst) || sgst < 0) {
+        alert('Please enter valid, non-negative GST rates.');
+        return;
+    }
+
+    const settings = {
+        cgst: parseFloat(cgst.toFixed(2)),
+        sgst: parseFloat(sgst.toFixed(2))
+    };
+
+    localStorage.setItem('tax_settings', JSON.stringify(settings));
+    alert('Tax settings saved successfully!');
+    loadTaxSettings();
 }

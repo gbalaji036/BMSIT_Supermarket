@@ -80,3 +80,28 @@ INSERT INTO products (product_code, name, category_id, price, stock_quantity) VA
 ('BMS006', 'Milk 1L', 4, 60.00, 50),
 ('BMS007', 'Bread', 1, 35.00, 60),
 ('BMS008', 'Toothpaste', 5, 85.00, 75);
+
+-- =====================================================
+-- Dynamic GST Tax Configuration Migration
+-- =====================================================
+
+-- Store Settings Table for Key-Value Configurations
+CREATE TABLE IF NOT EXISTS store_settings (
+    `key` VARCHAR(50) PRIMARY KEY,
+    `value` VARCHAR(255) NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Seed Default GST Rates (CGST 2.5%, SGST 2.5% -> Total 5%)
+INSERT INTO store_settings (`key`, `value`) VALUES
+('cgst_rate', '2.5'),
+('sgst_rate', '2.5')
+ON DUPLICATE KEY UPDATE `value` = VALUES(`value`);
+
+-- Migration: Add Subtotal & Split GST Tax Columns to Sales Table
+ALTER TABLE sales
+ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER contact_number,
+ADD COLUMN IF NOT EXISTS cgst_rate DECIMAL(5, 2) NOT NULL DEFAULT 2.50 AFTER subtotal,
+ADD COLUMN IF NOT EXISTS cgst_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER cgst_rate,
+ADD COLUMN IF NOT EXISTS sgst_rate DECIMAL(5, 2) NOT NULL DEFAULT 2.50 AFTER cgst_amount,
+ADD COLUMN IF NOT EXISTS sgst_amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00 AFTER sgst_rate;

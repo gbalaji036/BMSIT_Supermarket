@@ -88,17 +88,46 @@ router.post('/', async (req, res) => {
     try {
         await connection.beginTransaction();
 
-        const { customer_name, contact_number, payment_method, total_amount, items } = req.body;
+        const { 
+            customer_name, 
+            contact_number, 
+            payment_method, 
+            total_amount, 
+            items,
+            subtotal,
+            cgst_rate,
+            cgst_amount,
+            sgst_rate,
+            sgst_amount
+        } = req.body;
 
         if (!customer_name || !payment_method || !total_amount || !items || items.length === 0) {
             throw new Error('Missing required fields');
         }
 
-        // Insert sale
-        const [saleResult] = await connection.query(
-            'INSERT INTO sales (customer_name, contact_number, payment_method, total_amount) VALUES (?, ?, ?, ?)',
-            [customer_name, contact_number, payment_method, total_amount]
-        );
+        // Insert sale with tax breakdowns (with graceful fallback for pre-migration schemas)
+        let saleResult;
+        try {
+            [saleResult] = await connection.query(
+                'INSERT INTO sales (customer_name, contact_number, payment_method, total_amount, subtotal, cgst_rate, cgst_amount, sgst_rate, sgst_amount) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    customer_name, 
+                    contact_number, 
+                    payment_method, 
+                    total_amount, 
+                    subtotal !== undefined ? subtotal : (total_amount / 1.05),
+                    cgst_rate !== undefined ? cgst_rate : 2.50,
+                    cgst_amount !== undefined ? cgst_amount : 0.00,
+                    sgst_rate !== undefined ? sgst_rate : 2.50,
+                    sgst_amount !== undefined ? sgst_amount : 0.00
+                ]
+            );
+        } catch (dbErr) {
+            [saleResult] = await connection.query(
+                'INSERT INTO sales (customer_name, contact_number, payment_method, total_amount) VALUES (?, ?, ?, ?)',
+                [customer_name, contact_number, payment_method, total_amount]
+            );
+        }
 
         const saleId = saleResult.insertId;
 

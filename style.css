@@ -464,6 +464,11 @@ header h1 {
     margin-top: 20px;
 }
 
+.bill-summary p {
+    margin: 4px 0;
+    font-size: 14px;
+}
+
 .bill-summary h3 {
     color: #28a745;
     margin-top: 10px;

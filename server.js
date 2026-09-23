@@ -14,16 +14,22 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Import routes
-const categoriesRoutes = require('./routes/categories');
-const productsRoutes = require('./routes/products');
-const customersRoutes = require('./routes/customers');
-const salesRoutes = require('./routes/sales');
+const getRoute = (name) => {
+    try { return require(`./${name}`); } catch (e) { return require(`./routes/${name}`); }
+};
+
+const categoriesRoutes = getRoute('categories');
+const productsRoutes = getRoute('products');
+const customersRoutes = getRoute('customers');
+const salesRoutes = getRoute('sales');
+const settingsRoutes = getRoute('settings');
 
 // Use routes
 app.use('/api/categories', categoriesRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/customers', customersRoutes);
 app.use('/api/sales', salesRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -34,7 +40,8 @@ app.get('/', (req, res) => {
             categories: '/api/categories',
             products: '/api/products',
             customers: '/api/customers',
-            sales: '/api/sales'
+            sales: '/api/sales',
+            tax_settings: '/api/settings/tax'
         }
     });
 });
